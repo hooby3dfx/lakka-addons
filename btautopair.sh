@@ -62,11 +62,11 @@ do
 		$EMPTYBIN -s "info $MACADDR\n"
 
 		#listen for "Icon: input-gaming"
-		ERRORCODE="$($EMPTYBIN -w \"input-gaming\" -t 5)"
+		ERRORCODE="$($EMPTYBIN -w "input-gaming" -t 5)"
 		ERRORCODE=$?
 		echo "ERRORCODE $ERRORCODE"
 
-		if [ "$ERRORCODE" -ne 255 ]; then
+		if [ "$ERRORCODE" -eq 1 ]; then
 			
 			#pair
 			echo "going to pair"
