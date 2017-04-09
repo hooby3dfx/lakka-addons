@@ -5,6 +5,7 @@
 
 #requires empty (http://empty.sourceforge.net/)
 EMPTYBIN='/storage/empty'
+LOGPTH='/storage/bt_helper.log'
 
 
 #string utils that work on busybox...
@@ -15,6 +16,14 @@ strindex() {
 }
 
 
+
+
+
+echo "script started" > $LOGPTH
+
+
+sleep 2
+
 #systemctl status bluetooth
 
 #make sure bluetooth is up and running.
@@ -22,26 +31,47 @@ touch /storage/.cache/services/bluez.conf
 systemctl enable bluetooth
 systemctl start bluetooth
 
-echo "bluetooth up and running"
+echo "bluetooth up and running" >> $LOGPTH
 
 #start the bluetooth interactive console
 $EMPTYBIN -f bluetoothctl
 sleep 2
 
-#listen for prompt and start scan
-$EMPTYBIN -s "scan on\n"
+echo "bluetooth setting up" >> $LOGPTH
 
+
+$EMPTYBIN -s "agent on\n"
+$EMPTYBIN -w "Agent registered"
+sleep 1
+
+$EMPTYBIN -s "default-agent\n"
+$EMPTYBIN -w "Default agent request successful"
+sleep 1
+
+$EMPTYBIN -s "power on\n"
+$EMPTYBIN -w "Changing power on succeeded"
+sleep 1
+
+$EMPTYBIN -s "discoverable on\n"
+$EMPTYBIN -w "Changing discoverable on succeeded"
+sleep 1
+
+$EMPTYBIN -s "pairable on\n"
+$EMPTYBIN -w "Changing pairable on succeeded"
+sleep 1
+
+$EMPTYBIN -s "scan on\n"
 $EMPTYBIN -w "Discovery started"
 
-echo "bluetooth scanning"
+echo "bluetooth scanning" >> $LOGPTH
 
 #look for a bunch of messages... might want to tweak this
-for i in `seq 1 20`
+for i in `seq 1 40`
 do
-	echo "waiting for event $i..."
+	echo "waiting for event $i..." >> $LOGPTH
 	#look for a NEW, waiting up to 10s
 	ONELINE="$($EMPTYBIN -r -t 10)"
-	echo "saw $ONELINE"
+	echo "saw $ONELINE" >> $LOGPTH
 	if [ -z "$ONELINE" ]; then
 		#echo "empty string"
 		#hack
@@ -49,7 +79,7 @@ do
 	fi
 
 	if stringContain "NEW" "$ONELINE" && stringContain "Device " "$ONELINE"; then
-		echo "processing device"
+		echo "processing device" >> $LOGPTH
 		#capture MAC
 		MAC_INDEX=$(strindex "$ONELINE" "Device")
 		#the MAC address is offset 7 chars from the word Device...
@@ -58,44 +88,56 @@ do
   		MACADDR=${ONELINE:$MAC_INDEX:17}
 
 		#for any new MAC, request info
-		echo "requesting info for $MACADDR"
+		echo "requesting info for $MACADDR" >> $LOGPTH
 		$EMPTYBIN -s "info $MACADDR\n"
 
 		#listen for "Icon: input-gaming"
-		ERRORCODE="$($EMPTYBIN -w "input-gaming" -t 5)"
+		$EMPTYBIN -w "Icon: input-" -t 5
 		ERRORCODE=$?
-		echo "ERRORCODE $ERRORCODE"
+		echo "ERRORCODE $ERRORCODE" >> $LOGPTH
 
 		if [ "$ERRORCODE" -eq 1 ]; then
 			
+			#dont ask - workaround/hack for first command sent
+			$EMPTYBIN -s "poopies\n"
+			$EMPTYBIN -w "Invalid command"
+
 			#pair
-			echo "going to pair"
+			echo "going to pair" >> $LOGPTH
 			$EMPTYBIN -s "pair $MACADDR\n"
-			sleep 2
+			#eat some lines
+			ONELINE="$($EMPTYBIN -r -t 10)"
+			echo "saw $ONELINE" >> $LOGPTH
+			ONELINE="$($EMPTYBIN -r -t 10)"
+			echo "saw $ONELINE" >> $LOGPTH
+			ONELINE="$($EMPTYBIN -r -t 10)"
+			echo "saw $ONELINE" >> $LOGPTH
+			ONELINE="$($EMPTYBIN -r -t 10)"
+			echo "saw $ONELINE" >> $LOGPTH
+			#actually wait for success
+			$EMPTYBIN -w "Pairing successful"
 
 			#connect
-			echo "going to connect"
+			echo "going to connect" >> $LOGPTH
 			$EMPTYBIN -s "connect $MACADDR\n"
-			sleep 2
+			$EMPTYBIN -w "Connection successful"
 
 			#trust
-			echo "going to trust"
+			echo "going to trust" >> $LOGPTH
 			$EMPTYBIN -s "trust $MACADDR\n"
 			sleep 2
 
-			#sleep a little more for good measure...
-			sleep 3
 		else
-			echo "not a gamepad"
+			echo "not a gamepad" >> $LOGPTH
 		fi
 
 	else
-		echo "not a new device event"
+		echo "not a new device event" >> $LOGPTH
 	fi
 done
 
 #exit! 
-echo "exiting"
+echo "exiting" >> $LOGPTH
 $EMPTYBIN -s "exit\n"
 sleep 5
 killall bluetoothctl
