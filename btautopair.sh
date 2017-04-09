@@ -5,6 +5,7 @@
 
 #requires empty (http://empty.sourceforge.net/)
 EMPTYBIN='/storage/empty'
+#log events to a file (helpful when script is run in background; use tail -f to see whats going on)
 LOGPTH='/storage/bt_helper.log'
 
 
@@ -105,7 +106,7 @@ do
 			#pair
 			echo "going to pair" >> $LOGPTH
 			$EMPTYBIN -s "pair $MACADDR\n"
-			#eat some lines
+			#eat some lines (workaround/hack)
 			ONELINE="$($EMPTYBIN -r -t 10)"
 			echo "saw $ONELINE" >> $LOGPTH
 			ONELINE="$($EMPTYBIN -r -t 10)"
