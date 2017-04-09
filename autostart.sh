@@ -1,0 +1,3 @@
+(
+/storage/btautopair.sh &
+) &
