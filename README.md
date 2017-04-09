@@ -15,3 +15,4 @@ Script that can be run on system startup, manually, or through some trigger to p
 Will automatically pair with any input class devices that are found in pairing mode.
 
 Note: requires the utility "empty" to interact with the bluetoothctl interactive cli.
+The source for "empty" is available in this repo, as well as a precompiled binary (armhf/linux).
